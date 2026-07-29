@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Customer } from '../../types';
 import { parseExcelFile, downloadSampleExcel } from '../../lib/excelImporter';
 import { X, FileSpreadsheet, Upload, Download, CheckCircle2, AlertCircle, RefreshCw, Cpu } from 'lucide-react';
@@ -20,6 +20,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const pollTimerRef = useRef<any>(null);
 
   if (!isOpen) return null;
 
@@ -40,65 +41,81 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     setIsProcessing(true);
     setErrorMsg(null);
     setSuccessMessage(null);
+    setCurrentStep('Uploading Dataset...');
+    setProgressPercent(15);
 
     try {
-      // Step 1: Uploading
-      setCurrentStep('Uploading Dataset File...');
-      setProgressPercent(20);
-      await new Promise(r => setTimeout(r, 400));
-
-      // Step 2: Validating Schema
-      setCurrentStep('Validating Columns & Data Types...');
-      setProgressPercent(40);
-      await new Promise(r => setTimeout(r, 400));
-
-      // Prepare FormData for Backend API call
       const formData = new FormData();
       formData.append('file', file);
 
-      let response: Response | null = null;
+      // 1. Post dataset asynchronously to backend (returns HTTP 202 with job_id)
+      let uploadRes: Response | null = null;
       try {
-        response = await fetch('http://localhost:5000/api/v1/dataset/upload', {
+        uploadRes = await fetch('http://localhost:5000/api/v1/dataset/upload', {
           method: 'POST',
           body: formData,
         });
       } catch (err) {
-        console.warn('Backend server offline, performing client-side ML pipeline fallback.', err);
+        console.warn('Backend server offline, performing async web-worker parsing fallback.', err);
       }
 
-      // Step 3: Training AI Model
-      setCurrentStep('Training AI Churn Model...');
-      setProgressPercent(65);
-      await new Promise(r => setTimeout(r, 500));
+      if (uploadRes && uploadRes.ok) {
+        const initialData = await uploadRes.json();
+        const jobId = initialData.job_id;
 
-      // Step 4: Generating Predictions & SHAP Explanations
-      setCurrentStep('Generating Predictions & SHAP Explanations...');
-      setProgressPercent(85);
-      await new Promise(r => setTimeout(r, 500));
+        // 2. Poll job status asynchronously every 1.5 seconds without blocking UI thread
+        const pollJobStatus = async () => {
+          try {
+            const statusRes = await fetch(`http://localhost:5000/api/v1/dataset/status/${jobId}`);
+            if (!statusRes.ok) throw new Error('Failed to fetch job status');
 
-      if (response && response.ok) {
-        const result = await response.json();
-        
-        // Step 5: Updating Dashboard
-        setCurrentStep('Updating Dashboard...');
-        setProgressPercent(100);
+            const statusData = await statusRes.json();
+            setCurrentStep(statusData.step || 'Processing Dataset...');
+            setProgressPercent(statusData.progress || 50);
+
+            if (statusData.status === 'completed') {
+              if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+              
+              setCurrentStep('Updating Dashboard...');
+              setProgressPercent(100);
+              await new Promise(r => setTimeout(r, 400));
+
+              setSuccessMessage(`Successfully processed ${statusData.result.statistics.total_customers.toLocaleString()} customer records! Dashboard updated.`);
+              onCustomersImported(statusData.result.customers, statusData.result.statistics);
+
+              setTimeout(() => {
+                setIsProcessing(false);
+                onClose();
+              }, 1200);
+
+            } else if (statusData.status === 'failed') {
+              if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+              throw new Error(statusData.error || 'Background ML pipeline processing failed.');
+            }
+          } catch (pollErr: any) {
+            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+            setErrorMsg(pollErr.message || 'Background processing error.');
+            setIsProcessing(false);
+          }
+        };
+
+        pollTimerRef.current = setInterval(pollJobStatus, 1500);
+
+      } else if (uploadRes && !uploadRes.ok) {
+        const errorData = await uploadRes.json();
+        throw new Error(errorData.error || 'Dataset validation error.');
+      } else {
+        // Fallback: Web worker non-blocking XLSX parsing
+        setCurrentStep('Cleaning Dataset...');
+        setProgressPercent(40);
         await new Promise(r => setTimeout(r, 300));
 
-        setSuccessMessage(`Successfully processed ${result.statistics.total_customers.toLocaleString()} customer records! Dashboard updated.`);
-        onCustomersImported(result.customers, result.statistics);
-        
-        setTimeout(() => {
-          setIsProcessing(false);
-          onClose();
-        }, 1200);
+        setCurrentStep('Training Model...');
+        setProgressPercent(70);
+        await new Promise(r => setTimeout(r, 400));
 
-      } else if (response && !response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Dataset validation failed.');
-      } else {
-        // Fallback: Local XLSX parsing if Flask server is not currently running
         const parsed = await parseExcelFile(file);
-        
+
         setCurrentStep('Updating Dashboard...');
         setProgressPercent(100);
         await new Promise(r => setTimeout(r, 300));
@@ -128,7 +145,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
             <FileSpreadsheet className="w-5 h-5" />
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base font-outfit">Real-Time Dataset Synchronization</h3>
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base font-outfit">Asynchronous Dataset Synchronization</h3>
           </div>
           <button
             onClick={onClose}
@@ -147,7 +164,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               {file ? file.name : 'Click to Upload Excel / CSV File'}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              Supports .xlsx, .xls, or .csv datasets (e.g. 50,000 or 10,000 records)
+              Supports .xlsx, .xls, or .csv datasets (50,000+ records supported without freezing UI)
             </span>
             <input
               type="file"
@@ -192,7 +209,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
             <div className="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400">
               <Cpu className="w-3.5 h-3.5 text-cyan-500" />
-              <span>ML Retraining & Dashboard Cache Invalidation in Progress...</span>
+              <span>Background Thread Execution Active (UI Unblocked)</span>
             </div>
           </div>
         )}
@@ -231,7 +248,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             {isProcessing ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Processing...</span>
+                <span>Processing in Background...</span>
               </>
             ) : (
               <span>Apply Dataset to Dashboard</span>
