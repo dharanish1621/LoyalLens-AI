@@ -26,10 +26,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <div className="space-y-6 animate-fade-in">
       
+      {/* 32px Page Heading */}
+      <div>
+        <h1 className="heading-page">Executive Dashboard</h1>
+        <p className="text-body text-[#6B7280]">Real-Time Customer Retention Analytics & Portfolio Health Overview</p>
+      </div>
+
       {/* 6 Top KPI Cards */}
       <KPICards financials={financials} totalCustomersCount={customers.length || 50000} />
 
-      {/* Grid: Analytics Section + Live Stream */}
+      {/* Grid: Risk Analysis Section + Live Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <RiskDistributionChart customers={customers} />
@@ -45,10 +51,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
-      {/* AI Insights & Explainability Panel */}
+      {/* Business Insights Panel */}
       <AIInsightsPanel />
 
-      {/* Customer Matrix Table */}
+      {/* Customer Directory Data Table */}
       <CustomerTable
         customers={customers}
         onSelectCustomer={onSelectCustomer}

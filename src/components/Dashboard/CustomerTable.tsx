@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Customer, RiskTier } from '../../types';
-import { Search, Sparkles, Eye, AlertCircle } from 'lucide-react';
+import { Search, Eye, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -16,198 +16,225 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRiskTier, setSelectedRiskTier] = useState<string>('All');
   const [selectedSegment, setSelectedSegment] = useState<string>('All');
+  const [sortField, setSortField] = useState<'clv' | 'churnRiskScore' | 'name'>('churnRiskScore');
+  const [sortAsc, setSortAsc] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const filteredCustomers = customers.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredCustomers = customers
+    .filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRisk = selectedRiskTier === 'All' || c.riskTier === selectedRiskTier;
-    const matchesSegment = selectedSegment === 'All' || c.segment === selectedSegment;
+      const matchesRisk = selectedRiskTier === 'All' || c.riskTier === selectedRiskTier;
+      const matchesSegment = selectedSegment === 'All' || c.segment === selectedSegment;
 
-    return matchesSearch && matchesRisk && matchesSegment;
-  });
+      return matchesSearch && matchesRisk && matchesSegment;
+    })
+    .sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+      if (typeof valA === 'string') {
+        return sortAsc ? (valA as string).localeCompare(valB as string) : (valB as string).localeCompare(valA as string);
+      }
+      return sortAsc ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+    });
+
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
+  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handleSort = (field: 'clv' | 'churnRiskScore' | 'name') => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(false);
+    }
+  };
 
   const getRiskBadge = (score: number, tier: RiskTier) => {
     if (tier === 'High') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5 animate-pulse" />
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-[#DC2626] border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] mr-1.5" />
           {score}% High Risk
         </span>
       );
     }
     if (tier === 'Medium') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5" />
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-[#F59E0B] border border-amber-200 dark:bg-amber-950/40 dark:border-amber-900">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] mr-1.5" />
           {score}% Medium Risk
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" />
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-[#16A34A] border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] mr-1.5" />
         {score}% Stable
       </span>
     );
   };
 
   return (
-    <div className="bg-zinc-900/90 rounded-xl border border-zinc-800 shadow-sm overflow-hidden mb-8">
+    <div className="enterprise-card overflow-hidden">
       
-      {/* Controls Bar: Search + Filters */}
-      <div className="p-4 border-b border-zinc-800 flex flex-col md:flex-row gap-3 items-center justify-between">
-        
-        {/* Search */}
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search customer, email, or ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-md pl-9 pr-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all"
-          />
+      {/* Controls Bar */}
+      <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1F2937] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="heading-card">Customer Directory</h3>
+          <p className="text-label-small text-[#6B7280]">Filter, search, and inspect customer metrics</p>
         </div>
 
-        {/* Risk & Segment Filters */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          
-          {/* Risk Tier Filter Buttons */}
-          <div className="flex items-center space-x-1 bg-zinc-950 p-1 rounded-md border border-zinc-800 text-xs">
-            {['All', 'High', 'Medium', 'Low'].map((tier) => (
-              <button
-                key={tier}
-                onClick={() => setSelectedRiskTier(tier)}
-                className={`px-2.5 py-1 rounded font-medium transition-all ${
-                  selectedRiskTier === tier
-                    ? 'bg-zinc-800 text-zinc-100 shadow-xs'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                {tier}
-              </button>
-            ))}
+        <div className="flex items-center space-x-3 w-full md:w-auto">
+          {/* Search Input */}
+          <div className="relative w-full md:w-64">
+            <Search className="w-4 h-4 text-[#6B7280] absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#F8FAFC] dark:bg-[#0B0F17] border border-[#E5E7EB] dark:border-[#1F2937] rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#111827] dark:text-[#F9FAFB]"
+            />
           </div>
 
-          {/* Segment Filter Dropdown */}
+          {/* Risk Filter */}
+          <select
+            value={selectedRiskTier}
+            onChange={(e) => setSelectedRiskTier(e.target.value)}
+            className="bg-[#F8FAFC] dark:bg-[#0B0F17] border border-[#E5E7EB] dark:border-[#1F2937] text-[#111827] dark:text-[#F9FAFB] text-xs rounded-lg px-3 py-1.5"
+          >
+            <option value="All">All Risk Tiers</option>
+            <option value="High">High Risk</option>
+            <option value="Medium">Medium Risk</option>
+            <option value="Low">Low Risk</option>
+          </select>
+
+          {/* Segment Filter */}
           <select
             value={selectedSegment}
             onChange={(e) => setSelectedSegment(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-md px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-zinc-600"
+            className="bg-[#F8FAFC] dark:bg-[#0B0F17] border border-[#E5E7EB] dark:border-[#1F2937] text-[#111827] dark:text-[#F9FAFB] text-xs rounded-lg px-3 py-1.5"
           >
             <option value="All">All Segments</option>
-            <option value="VIP">VIP Segment</option>
-            <option value="Bargain Hunter">Bargain Hunters</option>
-            <option value="Regular">Regular Buyers</option>
-            <option value="New Buyer">New Buyers</option>
+            <option value="VIP">VIP</option>
+            <option value="Regular">Regular</option>
+            <option value="Bargain Hunter">Bargain Hunter</option>
+            <option value="New Buyer">New Buyer</option>
           </select>
         </div>
-
       </div>
 
-      {/* Customer Table */}
+      {/* Enterprise Data Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-zinc-950/60 border-b border-zinc-800 text-[11px] font-medium text-zinc-400 uppercase tracking-wider">
-              <th className="py-3 px-5">Customer Profile</th>
+        <table className="w-full text-left text-xs">
+          <thead className="bg-[#F8FAFC] dark:bg-[#0B0F17] text-[#6B7280] font-semibold border-b border-[#E5E7EB] dark:border-[#1F2937] sticky top-0">
+            <tr>
+              <th className="py-3 px-4">Account ID & Name</th>
               <th className="py-3 px-4">Segment</th>
-              <th className="py-3 px-4">CLV ($)</th>
-              <th className="py-3 px-4">Churn Risk Score</th>
-              <th className="py-3 px-4">Primary SHAP Driver</th>
-              <th className="py-3 px-5 text-right">Actions</th>
+              <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('clv')}>
+                <div className="flex items-center space-x-1">
+                  <span>Lifetime Value ($)</span>
+                  <ArrowUpDown className="w-3 h-3 text-[#6B7280]" />
+                </div>
+              </th>
+              <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('churnRiskScore')}>
+                <div className="flex items-center space-x-1">
+                  <span>Risk Score</span>
+                  <ArrowUpDown className="w-3 h-3 text-[#6B7280]" />
+                </div>
+              </th>
+              <th className="py-3 px-4">Last Active</th>
+              <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800/60 text-xs">
-            {filteredCustomers.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-12 text-center text-zinc-400">
-                  <AlertCircle className="w-6 h-6 text-zinc-500 mx-auto mb-2" />
-                  No customer profiles found.
+
+          <tbody className="divide-y divide-[#E5E7EB] dark:divide-[#1F2937]">
+            {paginatedCustomers.map((cust) => (
+              <tr key={cust.id} className="hover:bg-[#F8FAFC] dark:hover:bg-slate-800/50 transition-colors">
+                <td className="py-3 px-4">
+                  <div className="flex items-center space-x-3">
+                    <img src={cust.avatar} alt={cust.name} className="w-8 h-8 rounded-full object-cover border border-[#E5E7EB]" />
+                    <div>
+                      <span className="font-semibold text-[#111827] dark:text-[#F9FAFB] block">{cust.name}</span>
+                      <span className="text-[11px] text-[#6B7280] font-mono">{cust.id}</span>
+                    </div>
+                  </div>
+                </td>
+
+                <td className="py-3 px-4">
+                  <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#111827] dark:text-slate-300 font-medium">
+                    {cust.segment}
+                  </span>
+                </td>
+
+                <td className="py-3 px-4 font-semibold font-mono text-[#111827] dark:text-[#F9FAFB]">
+                  ${cust.clv.toLocaleString()}
+                </td>
+
+                <td className="py-3 px-4">
+                  {getRiskBadge(cust.churnRiskScore, cust.riskTier)}
+                </td>
+
+                <td className="py-3 px-4 text-[#6B7280]">
+                  {cust.lastActiveDaysAgo} days ago
+                </td>
+
+                <td className="py-3 px-4 text-right">
+                  <div className="flex items-center justify-end space-x-2">
+                    <button
+                      onClick={() => onSelectCustomer(cust)}
+                      className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 text-[#6B7280] hover:text-[#111827] dark:hover:text-white transition-colors"
+                      title="Inspect Profile"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={() => onDeployRetention(cust)}
+                      className="px-2.5 py-1 rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-[11px] transition-colors"
+                    >
+                      Strategy
+                    </button>
+                  </div>
                 </td>
               </tr>
-            ) : (
-              filteredCustomers.map((c) => (
-                <tr
-                  key={c.id}
-                  className="hover:bg-zinc-800/40 transition-colors group"
-                >
-                  {/* Customer Profile */}
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={c.avatar}
-                        alt={c.name}
-                        className="w-9 h-9 rounded-full object-cover border border-zinc-700"
-                      />
-                      <div>
-                        <div className="font-semibold text-zinc-100 group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-                          {c.name}
-                          {c.segment === 'VIP' && (
-                            <span className="text-[10px] bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono font-medium">
-                              VIP
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-zinc-400 font-mono">{c.email} • {c.id}</div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Segment */}
-                  <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 text-[11px] font-medium border border-zinc-700/60">
-                      {c.segment}
-                    </span>
-                  </td>
-
-                  {/* CLV */}
-                  <td className="py-3.5 px-4 font-bold text-zinc-100 font-outfit text-sm">
-                    ${c.clv.toLocaleString()}
-                  </td>
-
-                  {/* Churn Risk */}
-                  <td className="py-3.5 px-4">
-                    {getRiskBadge(c.churnRiskScore, c.riskTier)}
-                  </td>
-
-                  {/* Top SHAP Driver */}
-                  <td className="py-3.5 px-4">
-                    <div className="text-xs text-zinc-200 font-medium truncate max-w-[190px]">
-                      {c.topDrivers[0]?.feature || 'Standard Pattern'}
-                    </div>
-                    <div className="text-[11px] text-zinc-400 truncate max-w-[190px]">
-                      {c.topDrivers[0]?.description}
-                    </div>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-3.5 px-5 text-right space-x-2">
-                    <button
-                      onClick={() => onSelectCustomer(c)}
-                      className="inline-flex items-center space-x-1.5 px-2.5 py-1.2 rounded-md text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-all"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>XAI 360</span>
-                    </button>
-
-                    <button
-                      onClick={() => onDeployRetention(c)}
-                      className="inline-flex items-center space-x-1.5 px-3 py-1.2 rounded-md text-xs font-semibold bg-zinc-100 text-zinc-900 hover:bg-zinc-200 shadow-sm transition-all"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-zinc-900" />
-                      <span>Deploy Rescue</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
+
+      {/* Enterprise Pagination Bar */}
+      <div className="p-4 border-t border-[#E5E7EB] dark:border-[#1F2937] flex items-center justify-between text-xs text-[#6B7280]">
+        <span>
+          Showing {Math.min((currentPage - 1) * pageSize + 1, filteredCustomers.length)} to {Math.min(currentPage * pageSize, filteredCustomers.length)} of {filteredCustomers.length} accounts
+        </span>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="p-1 rounded bg-slate-100 dark:bg-slate-800 disabled:opacity-50 text-[#111827] dark:text-slate-300"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="font-medium text-[#111827] dark:text-[#F9FAFB] font-mono">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="p-1 rounded bg-slate-100 dark:bg-slate-800 disabled:opacity-50 text-[#111827] dark:text-slate-300"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 };
