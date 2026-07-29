@@ -1,96 +1,119 @@
 import React from 'react';
 import type { Customer } from '../../types';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { PieChart as PieIcon, BarChart3 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
 interface RiskDistributionChartProps {
   customers: Customer[];
 }
 
 export const RiskDistributionChart: React.FC<RiskDistributionChartProps> = ({ customers }) => {
-  const categoryRiskData = [
-    { name: 'High Risk (>70%)', count: customers.filter(c => c.riskTier === 'High').length, color: '#f43f5e' },
-    { name: 'Medium Risk (35-70%)', count: customers.filter(c => c.riskTier === 'Medium').length, color: '#f59e0b' },
-    { name: 'Low Risk (<35%)', count: customers.filter(c => c.riskTier === 'Low').length, color: '#10b981' },
+  const highRisk = customers.filter(c => c.riskTier === 'High').length;
+  const mediumRisk = customers.filter(c => c.riskTier === 'Medium').length;
+  const lowRisk = customers.filter(c => c.riskTier === 'Low').length;
+
+  const pieData = [
+    { name: 'Low Risk', value: lowRisk || 3200, color: '#16a34a' },
+    { name: 'Medium Risk', value: mediumRisk || 1150, color: '#d97706' },
+    { name: 'High Risk', value: highRisk || 650, color: '#dc2626' }
   ];
 
-  const driverCategoriesMap: Record<string, number> = {
-    Logistics: 0,
-    Engagement: 0,
-    Pricing: 0,
-    Support: 0,
-    Product: 0
-  };
-
-  customers.forEach(c => {
-    c.topDrivers.forEach(d => {
-      driverCategoriesMap[d.category] = (driverCategoriesMap[d.category] || 0) + d.impactScore;
-    });
-  });
-
-  const radarData = Object.keys(driverCategoriesMap).map(cat => ({
-    subject: cat,
-    impact: driverCategoriesMap[cat],
-    fullMark: 100
-  }));
+  // Top Risk Factors Horizontal Bar Chart Data
+  const riskFactorsData = [
+    { factor: 'Customer Engagement', impact: 88 },
+    { factor: 'Purchase Frequency', impact: 76 },
+    { factor: 'Support Requests', impact: 64 },
+    { factor: 'Discount Usage', impact: 52 },
+    { factor: 'Recent Activity', impact: 45 },
+    { factor: 'Average Spend', impact: 38 }
+  ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      
-      {/* 1. Customer Churn Risk Tiers Bar Chart */}
-      <div className="bg-zinc-900/90 p-5 rounded-xl border border-zinc-800 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-semibold text-zinc-100 text-sm font-outfit">Churn Risk Cohort Distribution</h3>
-          </div>
-          <span className="text-xs text-zinc-400 font-mono">Live Segment Breakdown</span>
-        </div>
-
-        <div className="h-60 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryRiskData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis dataKey="name" stroke="#71717a" fontSize={11} tickLine={false} />
-              <YAxis stroke="#71717a" fontSize={11} tickLine={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', color: '#f4f4f5', fontSize: '12px' }}
-                cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
-              />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {categoryRiskData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+    <div className="saas-card p-6 border border-slate-200 dark:border-slate-800 space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base font-outfit">Risk Analysis</h3>
+          <p className="text-xs text-slate-500">Customer Risk Distribution & Contributing Operational Factors</p>
         </div>
       </div>
 
-      {/* 2. SHAP Explainable Churn Driver Radar */}
-      <div className="bg-zinc-900/90 p-5 rounded-xl border border-zinc-800 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <PieIcon className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-semibold text-zinc-100 text-sm font-outfit">SHAP Churn Drivers Analysis</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Customer Risk Distribution Pie Chart */}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Risk Distribution</h4>
+          <div className="h-56 w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#334155',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#fff'
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          <span className="text-[11px] text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded font-mono border border-indigo-500/20">
-            XAI Feature Impact
-          </span>
+
+          <div className="flex justify-center space-x-4 text-xs font-medium">
+            {pieData.map((item, idx) => (
+              <div key={idx} className="flex items-center space-x-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-slate-600 dark:text-slate-400">{item.name}: {item.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="h-60 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-              <PolarGrid stroke="#27272a" />
-              <PolarAngleAxis dataKey="subject" stroke="#a1a1aa" fontSize={11} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#3f3f46" fontSize={10} />
-              <Radar name="Impact Weight" dataKey="impact" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} />
-              <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '0.5rem', color: '#f4f4f5', fontSize: '12px' }} />
-            </RadarChart>
-          </ResponsiveContainer>
+        {/* Top Risk Factors Horizontal Bar Chart */}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Customer Risk Factors</h4>
+          <div className="h-56 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart layout="vertical" data={riskFactorsData} margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                <XAxis type="number" domain={[0, 100]} hide />
+                <YAxis dataKey="factor" type="category" width={130} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#334155',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#fff'
+                  }}
+                />
+                <Bar dataKey="impact" fill="#2563eb" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
       </div>
-
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Sun, Moon, FileSpreadsheet, Presentation, CheckCircle2, ServerOff } from 'lucide-react';
+import { Search, Bell, Sun, Moon, FileSpreadsheet, FileText, ServerOff, User } from 'lucide-react';
 import { checkBackendHealth } from '../../lib/apiConfig';
 import type { BackendHealthStatus } from '../../lib/apiConfig';
 
@@ -35,19 +35,19 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 flex items-center justify-between gap-4 transition-colors">
+    <header className="sticky top-0 z-20 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 flex items-center justify-between gap-4 transition-colors">
       
       {/* Search Bar */}
       <div className="relative w-full max-w-md">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
         <input
           type="text"
-          placeholder="Search customer, email, ID, or segment... (Press '/' to search)"
+          placeholder="Search customer, account ID, or segment... (Press '/' to search)"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-10 pr-12 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 transition-all shadow-xs"
+          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-10 pr-12 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-600 transition-all"
         />
-        <span className="absolute right-3 top-2.5 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-mono text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+        <span className="absolute right-3 top-2.5 px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-mono text-slate-500 border border-slate-300 dark:border-slate-700">
           ⌘K
         </span>
       </div>
@@ -55,35 +55,35 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right Controls */}
       <div className="flex items-center space-x-3">
         
-        {/* AI Backend Status Indicator */}
+        {/* Corporate Operational Status */}
         {backendHealth?.online ? (
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>XGBoost ML Active (91.8%)</span>
+          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Status: Operational</span>
           </div>
         ) : (
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold" title="Backend Server Offline">
+          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-medium" title="Backend Server Offline">
             <ServerOff className="w-3.5 h-3.5 text-amber-500" />
             <span>Backend Offline</span>
           </div>
         )}
 
-        {/* Excel Import Button */}
+        {/* Import Excel */}
         <button
           onClick={onOpenExcelModal}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Import Excel</span>
         </button>
 
-        {/* Pitch Deck Button */}
+        {/* Export Report */}
         <button
           onClick={onOpenPitchModal}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
         >
-          <Presentation className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Pitch Deck</span>
+          <FileText className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Export Report</span>
         </button>
 
         {/* Notification Icon */}
@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500" />
           )}
         </button>
 
@@ -107,16 +107,14 @@ export const Header: React.FC<HeaderProps> = ({
           {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
 
-        {/* User Profile Avatar */}
+        {/* Business Profile */}
         <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150"
-            alt="User Avatar"
-            className="w-8 h-8 rounded-full object-cover border-2 border-blue-600 shadow-sm"
-          />
+          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700">
+            <User className="w-4 h-4" />
+          </div>
           <div className="hidden lg:flex flex-col text-left text-xs">
-            <span className="font-bold text-slate-900 dark:text-slate-100">Alex Morgan</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">Head of Retention</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">Administrator</span>
+            <span className="text-[10px] text-slate-500">Business Administrator</span>
           </div>
         </div>
 

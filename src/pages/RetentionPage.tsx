@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Customer, RetentionCampaign } from '../types';
 import { RetentionStudio } from '../components/Retention/RetentionStudio';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { HeartHandshake, ArrowLeft } from 'lucide-react';
 
 interface RetentionPageProps {
   customers: Customer[];
@@ -25,12 +25,12 @@ export const RetentionPage: React.FC<RetentionPageProps> = ({
       <div className="saas-card p-6 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4" />
-            <span>AI Automated Retention Studio</span>
+            <HeartHandshake className="w-4 h-4" />
+            <span>Retention Center</span>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 font-outfit">Personalized Retention Campaign Generator</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Generate custom rescue offers, VIP discount codes, and multi-channel messaging (Email, WhatsApp, Voice).
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 font-outfit">Retention Strategies & Customer Outreach</h2>
+          <p className="text-xs text-slate-500">
+            Generate custom rescue offers, VIP discount codes, and multi-channel messaging (Email, WhatsApp, Direct Line).
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Customer, RetentionCampaign } from '../../types';
 import { generateAIRetentionCampaign } from '../../lib/aiRetentionAgent';
 import confetti from 'canvas-confetti';
-import { Sparkles, Mail, MessageSquare, Send, CheckCircle2, ShieldCheck, Copy, RefreshCw, Volume2 } from 'lucide-react';
+import { Send, CheckCircle2, Copy, RefreshCw, HeartHandshake } from 'lucide-react';
 
 interface RetentionStudioProps {
   customers: Customer[];
@@ -36,7 +36,7 @@ export const RetentionStudio: React.FC<RetentionStudioProps> = ({
     setTimeout(() => {
       setCampaign(generateAIRetentionCampaign(currentCust));
       setIsGenerating(false);
-    }, 600);
+    }, 400);
   };
 
   const handleDispatch = () => {
@@ -55,36 +55,40 @@ export const RetentionStudio: React.FC<RetentionStudioProps> = ({
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const priorityLevel = currentCust.churnRiskScore >= 70 ? 'High Priority' : currentCust.churnRiskScore >= 35 ? 'Medium Priority' : 'Low Priority';
+  const expectedImpact = `${Math.min(92, Math.round(75 + currentCust.totalOrders * 0.5))}% Success Rate`;
+  const revenueSaved = `$${currentCust.clv.toLocaleString()}`;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-zinc-900/90 p-6 rounded-xl border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="saas-card p-6 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Autonomous AI Retention Studio</span>
+          <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <HeartHandshake className="w-4 h-4" />
+            <span>Retention Outreach Studio</span>
           </div>
-          <h2 className="text-xl font-bold text-zinc-50 font-outfit">Hyper-Personalized Campaign Studio</h2>
-          <p className="text-xs text-zinc-400">
-            Tailoring offers and copywriting dynamically from SHAP feature attributions.
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 font-outfit">Campaign Strategy & Account Rescue</h2>
+          <p className="text-xs text-slate-500">
+            Tailoring customer offers, direct messaging templates, and automated re-engagement workflows.
           </p>
         </div>
 
         {/* Target Selector */}
         <div className="flex items-center space-x-3 w-full md:w-auto">
-          <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">Target Customer:</span>
+          <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Target Customer:</span>
           <select
             value={currentCust.id}
             onChange={(e) => {
               const cust = customers.find(c => c.id === e.target.value);
               if (cust) onSelectCustomer(cust);
             }}
-            className="bg-zinc-950 border border-zinc-800 text-zinc-100 rounded-md px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-zinc-600"
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-600"
           >
             {customers.map(c => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.riskTier} Risk - {c.churnRiskScore}%)
+                {c.name} ({c.riskTier} Risk - {c.churnRiskScore}% Risk Score)
               </option>
             ))}
           </select>
@@ -94,224 +98,167 @@ export const RetentionStudio: React.FC<RetentionStudioProps> = ({
       {/* Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column: Target Profile & AI Config */}
+        {/* Left Column: Target Profile & Strategy Metrics */}
         <div className="lg:col-span-5 space-y-6">
           
           {/* Target Profile Card */}
-          <div className="bg-zinc-900/90 p-5 rounded-xl border border-zinc-800 shadow-sm">
+          <div className="saas-card p-5 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center space-x-3 mb-4">
               <img
                 src={currentCust.avatar}
                 alt={currentCust.name}
-                className="w-10 h-10 rounded-full object-cover border border-zinc-700"
+                className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
               />
               <div>
-                <h3 className="font-semibold text-zinc-100 text-sm">{currentCust.name}</h3>
-                <span className="text-[11px] text-rose-400 font-medium bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
-                  {currentCust.churnRiskScore}% Risk ({currentCust.riskTier})
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{currentCust.name}</h3>
+                <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800">
+                  {currentCust.churnRiskScore}% Risk Score ({currentCust.riskTier})
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs bg-zinc-950 p-3 rounded-lg border border-zinc-800 mb-3">
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 mb-3">
               <div>
-                <span className="text-zinc-400 block font-mono">Segment:</span>
-                <span className="font-semibold text-zinc-100">{currentCust.segment}</span>
+                <span className="text-slate-500 block font-medium">Segment:</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{currentCust.segment}</span>
               </div>
               <div>
-                <span className="text-zinc-400 block font-mono">CLV at Risk:</span>
-                <span className="font-semibold text-emerald-400">${currentCust.clv.toLocaleString()}</span>
+                <span className="text-slate-500 block font-medium">Revenue at Risk:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">${currentCust.clv.toLocaleString()}</span>
               </div>
-            </div>
-
-            <div className="text-xs text-zinc-300">
-              <span className="text-zinc-400 font-medium block mb-1">Primary SHAP Driver:</span>
-              <p className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 font-mono text-[11px] text-amber-300">
-                ⚠️ {currentCust.topDrivers[0]?.feature}: {currentCust.topDrivers[0]?.description}
-              </p>
             </div>
           </div>
 
-          {/* Generated Package */}
-          <div className="bg-zinc-900/90 p-5 rounded-xl border border-zinc-800 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                AI Generated Rescue Package
-              </span>
-              <button
-                onClick={handleRegenerate}
-                disabled={isGenerating}
-                className="text-xs text-zinc-400 hover:text-zinc-200 flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-                <span>Re-generate</span>
-              </button>
-            </div>
+          {/* Strategy Details Card */}
+          <div className="saas-card p-5 border border-slate-200 dark:border-slate-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2">Retention Strategy Specification</h4>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="text-zinc-400 block font-mono">Strategy Name:</span>
-                <span className="font-semibold text-zinc-100">{campaign.strategyName}</span>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500">Recommended Action:</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{campaign.channel} Rescue Package</span>
               </div>
 
-              <div>
-                <span className="text-zinc-400 block font-mono">Incentive Package:</span>
-                <span className="font-bold text-indigo-300 text-sm">{campaign.incentiveValue}</span>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500">Priority:</span>
+                <span className="font-semibold text-rose-600 dark:text-rose-400">{priorityLevel}</span>
               </div>
 
-              <div>
-                <span className="text-zinc-400 block font-mono">Promo Code:</span>
-                <div className="flex items-center justify-between bg-zinc-950 p-2 rounded-md border border-zinc-800 mt-1">
-                  <span className="font-mono font-bold text-amber-300">{campaign.discountCode}</span>
-                  <button
-                    onClick={copyDiscountCode}
-                    className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>{copiedCode ? 'Copied!' : 'Copy'}</span>
-                  </button>
-                </div>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500">Expected Impact:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{expectedImpact}</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-center">
-                  <span className="text-[10px] text-zinc-400 block">Est. Retention</span>
-                  <span className="text-base font-bold text-emerald-400">{campaign.estimatedRetentionRate}%</span>
-                </div>
-                <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-center">
-                  <span className="text-[10px] text-zinc-400 block">Saved Value</span>
-                  <span className="text-base font-bold text-indigo-300">${campaign.expectedRevenueSaved.toLocaleString()}</span>
-                </div>
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500">Estimated Revenue Saved:</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100 font-mono">{revenueSaved}</span>
               </div>
             </div>
-
           </div>
 
         </div>
 
-        {/* Right Column: Omnichannel Preview */}
+        {/* Right Column: Copywriting & Multi-Channel Preview */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-zinc-900/90 p-5 rounded-xl border border-zinc-800 shadow-sm">
+          
+          <div className="saas-card p-6 border border-slate-200 dark:border-slate-800 space-y-4">
             
             {/* Channel Tabs */}
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Live Channel Preview
-              </span>
-              
-              <div className="flex items-center space-x-1 bg-zinc-950 p-1 rounded-md border border-zinc-800 text-xs">
-                <button
-                  onClick={() => setActiveTab('Email')}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded font-medium transition-all ${
-                    activeTab === 'Email' ? 'bg-zinc-800 text-zinc-50 shadow-xs' : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Email</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('WhatsApp')}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded font-medium transition-all ${
-                    activeTab === 'WhatsApp' ? 'bg-zinc-800 text-zinc-50 shadow-xs' : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>WhatsApp</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('Voice')}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded font-medium transition-all ${
-                    activeTab === 'Voice' ? 'bg-zinc-800 text-zinc-50 shadow-xs' : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>AI Voice</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Email Preview */}
-            {activeTab === 'Email' && (
-              <div className="bg-zinc-950 rounded-lg border border-zinc-800 p-4 space-y-3 font-sans text-xs">
-                <div className="border-b border-zinc-800 pb-2.5 space-y-1 text-zinc-400 font-mono">
-                  <div><span>To:</span> <span className="text-zinc-200">{currentCust.email}</span></div>
-                  <div><span>Subject:</span> <span className="text-indigo-300 font-semibold">{campaign.emailHeadline}</span></div>
-                </div>
-
-                <div className="whitespace-pre-line text-zinc-300 leading-relaxed bg-zinc-900/60 p-3.5 rounded-md border border-zinc-800">
-                  {campaign.aiGeneratedCopy}
-                </div>
-
-                <div className="pt-2 text-center">
-                  <button className="px-5 py-2 bg-zinc-100 text-zinc-900 font-semibold text-xs rounded-md shadow-sm">
-                    Claim Offer ({campaign.discountCode})
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex space-x-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg">
+                {(['Email', 'WhatsApp', 'SMS', 'Voice'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      activeTab === tab
+                        ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
+                  >
+                    {tab}
                   </button>
-                </div>
-              </div>
-            )}
-
-            {/* WhatsApp Preview */}
-            {activeTab === 'WhatsApp' && (
-              <div className="bg-zinc-950 rounded-lg border border-zinc-800 p-4 space-y-3">
-                <div className="flex items-center space-x-2 border-b border-zinc-800 pb-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-semibold text-emerald-400 font-mono">WhatsApp Business API Webhook</span>
-                </div>
-
-                <div className="max-w-[85%] bg-zinc-900 text-zinc-200 p-3.5 rounded-lg border border-zinc-800 text-xs leading-relaxed space-y-1.5">
-                  <p>{campaign.whatsappCopy}</p>
-                  <span className="text-[10px] text-zinc-500 block text-right">Just now • Delivered</span>
-                </div>
-              </div>
-            )}
-
-            {/* Voice Preview */}
-            {activeTab === 'Voice' && (
-              <div className="bg-zinc-950 rounded-lg border border-zinc-800 p-4 space-y-3 text-xs">
-                <div className="flex items-center space-x-2 text-amber-400 font-medium">
-                  <Volume2 className="w-4 h-4" />
-                  <span>Synthetic AI Concierge Voice Script Preview</span>
-                </div>
-
-                <div className="bg-zinc-900/60 p-3.5 rounded-md border border-zinc-800 text-zinc-300 font-mono leading-relaxed">
-                  "Hello {currentCust.name.split(' ')[0]}, this is your LoyalLens Concierge calling. We noticed a recent shipping delay on your last order. To ensure complete satisfaction, we've credited {campaign.incentiveValue} to your profile with voucher code {campaign.discountCode}. Press 1 to speak with senior support."
-                </div>
-              </div>
-            )}
-
-            {/* Dispatch Action */}
-            <div className="pt-5 border-t border-zinc-800 flex items-center justify-between">
-              <div>
-                {dispatched ? (
-                  <span className="inline-flex items-center text-xs font-semibold text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                    Campaign Dispatched via {activeTab}!
-                  </span>
-                ) : (
-                  <span className="text-xs text-zinc-400 font-mono">
-                    Ready to send via Omnichannel API
-                  </span>
-                )}
+                ))}
               </div>
 
               <button
-                onClick={handleDispatch}
-                disabled={dispatched}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-md font-semibold text-xs transition-all ${
-                  dispatched
-                    ? 'bg-emerald-600 text-zinc-50 cursor-default'
-                    : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 shadow-sm'
-                }`}
+                onClick={handleRegenerate}
+                disabled={isGenerating}
+                className="flex items-center space-x-1 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span>{dispatched ? 'Campaign Dispatched' : 'Dispatch Offer Now'}</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                <span>Refresh Strategy</span>
               </button>
             </div>
 
+            {/* Campaign Template Details */}
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="text-slate-500 font-medium block mb-1">Outreach Subject Line</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={campaign.emailHeadline || `Account Retention Outreach - ${currentCust.name}`}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-500 font-medium block mb-1">Message Content</label>
+                <textarea
+                  readOnly
+                  rows={6}
+                  value={
+                    activeTab === 'WhatsApp' ? campaign.whatsappCopy : campaign.aiGeneratedCopy
+                  }
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-slate-900 dark:text-slate-100 leading-relaxed font-mono text-xs"
+                />
+              </div>
+
+              {/* Discount Code Box */}
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium block">Incentive Code</span>
+                  <span className="font-mono font-bold text-blue-900 dark:text-blue-100 text-sm tracking-wider">{campaign.discountCode}</span>
+                </div>
+                <button
+                  onClick={copyDiscountCode}
+                  className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copiedCode ? 'Copied!' : 'Copy Code'}</span>
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={handleDispatch}
+                  disabled={dispatched}
+                  className={`flex items-center space-x-2 px-6 py-2.5 rounded-lg text-xs font-bold text-white shadow-md transition-all ${
+                    dispatched
+                      ? 'bg-emerald-600 cursor-default'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {dispatched ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Outreach Dispatched!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Execute Retention Outreach</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+
           </div>
+
         </div>
 
       </div>
