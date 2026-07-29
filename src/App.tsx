@@ -30,7 +30,7 @@ export function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Datasets
+  // Datasets State
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
@@ -42,6 +42,14 @@ export function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 'n1',
+      title: 'Dataset Synchronized Alert',
+      message: 'New customer dataset processed. All KPIs, risk metrics, and charts recalculated.',
+      timestamp: 'Just now',
+      type: 'system',
+      read: false,
+    },
+    {
+      id: 'n2',
       title: 'High Churn Risk Spike Alert',
       message: 'VIP Account Marcus Chen (CLV $8,200) risk score spiked to 88% due to shipping delay.',
       timestamp: '10 mins ago',
@@ -49,18 +57,10 @@ export function App() {
       read: false,
     },
     {
-      id: 'n2',
-      title: 'AI Retention Campaign Dispatched',
-      message: 'Automated 25% VIP Discount Code sent to Sarah Jenkins via WhatsApp Concierge.',
-      timestamp: '1 hour ago',
-      type: 'campaign',
-      read: false,
-    },
-    {
       id: 'n3',
-      title: 'XGBoost Model Benchmark Updated',
-      message: 'Model re-evaluated on 50,000 records. Accuracy stable at 91.82%, ROC-AUC 0.926.',
-      timestamp: '3 hours ago',
+      title: 'XGBoost Model Retrained',
+      message: 'Model retrained on latest dataset. Accuracy stable at 91.82%, ROC-AUC 0.926.',
+      timestamp: '1 hour ago',
       type: 'ai',
       read: true,
     },
@@ -75,8 +75,22 @@ export function App() {
     }
   }, [darkMode]);
 
-  const handleImportExcelCustomers = (imported: Customer[]) => {
-    setCustomers((prev) => [...imported, ...prev]);
+  // Completely replaces existing dataset with newly uploaded dataset
+  const handleImportExcelCustomers = (imported: Customer[], stats?: any) => {
+    if (imported && imported.length > 0) {
+      setCustomers(imported);
+      
+      // Add system notification for dataset sync
+      const newNotif: NotificationItem = {
+        id: `notif-${Date.now()}`,
+        title: 'Dataset Successfully Synchronized',
+        message: `Dashboard refreshed with ${imported.length.toLocaleString()} customer records.${stats ? ` Model accuracy: ${stats.model_accuracy}%` : ''}`,
+        timestamp: 'Just now',
+        type: 'system',
+        read: false,
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+    }
     setIsExcelModalOpen(false);
   };
 
