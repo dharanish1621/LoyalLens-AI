@@ -1,194 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import type { Customer, TelemetryEvent, RetentionCampaign } from './types';
-import { INITIAL_CUSTOMERS, INITIAL_TELEMETRY } from './lib/mockDataset';
-import { getRiskTier, calculateFinancialImpact } from './lib/churnEngine';
+import { useState, useEffect } from 'react';
+import type { Customer } from './types';
+import { INITIAL_CUSTOMERS } from './lib/mockDataset';
 
-import { Navbar } from './components/Layout/Navbar';
-import { KPICards } from './components/Dashboard/KPICards';
-import { LiveTelemetryStream } from './components/Dashboard/LiveTelemetryStream';
-import { RiskDistributionChart } from './components/Dashboard/RiskDistributionChart';
-import { CustomerTable } from './components/Dashboard/CustomerTable';
+// Components & Layout
+import { Sidebar } from './components/Layout/Sidebar';
+import type { NavItem } from './components/Layout/Sidebar';
+import { Header } from './components/Layout/Header';
+
+// Pages
+import { DashboardPage } from './pages/DashboardPage';
+import { CustomerManagementPage } from './pages/CustomerManagementPage';
+import { PredictionPage } from './pages/PredictionPage';
+import { SegmentsPage } from './pages/SegmentsPage';
+import { RetentionPage } from './pages/RetentionPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import type { NotificationItem } from './pages/NotificationsPage';
+import { SettingsPage } from './pages/SettingsPage';
+
+// Modals
 import { Customer360Modal } from './components/Customer/Customer360Modal';
-import { RetentionStudio } from './components/Retention/RetentionStudio';
-import { WhatIfROICalculator } from './components/Simulator/WhatIfROICalculator';
-import { PitchModeModal } from './components/Pitch/PitchModeModal';
 import { ExcelImportModal } from './components/Excel/ExcelImportModal';
+import { PitchModeModal } from './components/Pitch/PitchModeModal';
 
-export const App: React.FC = () => {
+export function App() {
+  const [activeTab, setActiveTab] = useState<NavItem>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Datasets
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
-  const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEvent[]>(INITIAL_TELEMETRY);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'retention' | 'simulator'>('dashboard');
-  const [isSimulating, setIsSimulating] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const [selectedCustomer360, setSelectedCustomer360] = useState<Customer | null>(null);
-  const [selectedRetentionCustomer, setSelectedRetentionCustomer] = useState<Customer | null>(null);
-  const [isPitchOpen, setIsPitchOpen] = useState(false);
+  // Modals
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPitchModalOpen, setIsPitchModalOpen] = useState(false);
 
-  // Financial summary
-  const financials = calculateFinancialImpact(customers);
+  // Notifications State
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'n1',
+      title: 'High Churn Risk Spike Alert',
+      message: 'VIP Account Marcus Chen (CLV $8,200) risk score spiked to 88% due to shipping delay.',
+      timestamp: '10 mins ago',
+      type: 'alert',
+      read: false,
+    },
+    {
+      id: 'n2',
+      title: 'AI Retention Campaign Dispatched',
+      message: 'Automated 25% VIP Discount Code sent to Sarah Jenkins via WhatsApp Concierge.',
+      timestamp: '1 hour ago',
+      type: 'campaign',
+      read: false,
+    },
+    {
+      id: 'n3',
+      title: 'XGBoost Model Benchmark Updated',
+      message: 'Model re-evaluated on 50,000 records. Accuracy stable at 91.82%, ROC-AUC 0.926.',
+      timestamp: '3 hours ago',
+      type: 'ai',
+      read: true,
+    },
+  ]);
 
-  // Real-time Event Simulation Hook
+  // Apply dark mode class to html document element
   useEffect(() => {
-    if (!isSimulating || customers.length === 0) return;
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
-    const interval = setInterval(() => {
-      const targetCust = customers[Math.floor(Math.random() * customers.length)];
-      const eventTypes: TelemetryEvent['eventType'][] = ['cart_abandoned', 'shipping_delay', 'negative_review', 'checkout_error'];
-      const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-
-      const newEvent: TelemetryEvent = {
-        id: `tel-${Date.now()}`,
-        customerId: targetCust.id,
-        customerName: targetCust.name,
-        avatar: targetCust.avatar,
-        eventType: randomType,
-        description: randomType === 'cart_abandoned'
-          ? `Abandoned high-value cart ($${Math.floor(200 + Math.random() * 500)} order)`
-          : randomType === 'shipping_delay'
-          ? `Package delivery delayed (+${Math.floor(2 + Math.random() * 4)} days)`
-          : `Failed promo code redemption at checkout`,
-        riskImpact: Math.floor(8 + Math.random() * 14),
-        timestamp: 'Just now'
-      };
-
-      setTelemetryEvents(prev => [newEvent, ...prev.slice(0, 7)]);
-
-      setCustomers(prevCusts =>
-        prevCusts.map(c => {
-          if (c.id === targetCust.id) {
-            const newScore = Math.min(99, c.churnRiskScore + newEvent.riskImpact);
-            return {
-              ...c,
-              churnRiskScore: newScore,
-              riskTier: getRiskTier(newScore)
-            };
-          }
-          return c;
-        })
-      );
-    }, 7000);
-
-    return () => clearInterval(interval);
-  }, [isSimulating, customers]);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  const handleImportExcelCustomers = (imported: Customer[]) => {
+    setCustomers((prev) => [...imported, ...prev]);
+    setIsExcelModalOpen(false);
   };
 
-  const handleCampaignDispatched = (campaign: RetentionCampaign) => {
-    showToast(`🚀 Campaign dispatched to ${campaign.customerName} via ${campaign.channel}! Code: ${campaign.discountCode}`);
+  const handleDeployRetention = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setActiveTab('retention');
   };
 
-  const handleExcelImported = (importedCustomers: Customer[]) => {
-    setCustomers(importedCustomers);
-    showToast(`📊 Successfully loaded ${importedCustomers.length} records from your Excel file!`);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
+
+  // Filter customers by search term
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.segment.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans selection:bg-zinc-800 selection:text-zinc-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex transition-colors font-sans">
       
-      {/* Top Header & Navigation */}
-      <Navbar
+      {/* Sidebar */}
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isSimulating={isSimulating}
-        setIsSimulating={setIsSimulating}
-        onOpenPitch={() => setIsPitchOpen(true)}
-        onOpenExcelModal={() => setIsExcelModalOpen(true)}
-        highRiskCount={financials.highRiskCount}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        unreadNotificationsCount={unreadCount}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-fade-in">
-            {/* KPI Cards */}
-            <KPICards financials={financials} />
+        {/* Top Header */}
+        <Header
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onOpenExcelModal={() => setIsExcelModalOpen(true)}
+          onOpenPitchModal={() => setIsPitchModalOpen(true)}
+          unreadCount={unreadCount}
+          onOpenNotifications={() => setActiveTab('notifications')}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
 
-            {/* Live Telemetry Feed */}
-            <LiveTelemetryStream
-              events={telemetryEvents}
-              onSelectCustomerById={(id) => {
-                const c = customers.find(cust => cust.id === id);
-                if (c) setSelectedCustomer360(c);
-              }}
+        {/* Dynamic Page Views */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+          
+          {activeTab === 'dashboard' && (
+            <DashboardPage
+              customers={filteredCustomers}
+              onSelectCustomer={setSelectedCustomer}
+              onDeployRetention={handleDeployRetention}
+              onOpenPitch={() => setIsPitchModalOpen(true)}
             />
+          )}
 
-            {/* Churn Risk Cohorts & SHAP Radar Charts */}
-            <RiskDistributionChart customers={customers} />
-
-            {/* Filterable Customer Churn Table */}
-            <CustomerTable
-              customers={customers}
-              onSelectCustomer={(c) => setSelectedCustomer360(c)}
-              onDeployRetention={(c) => {
-                setSelectedRetentionCustomer(c);
-                setActiveTab('retention');
-              }}
+          {activeTab === 'customers' && (
+            <CustomerManagementPage
+              customers={filteredCustomers}
+              onSelectCustomer={setSelectedCustomer}
+              onDeployRetention={handleDeployRetention}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'retention' && (
-          <div className="animate-fade-in">
-            <RetentionStudio
-              customers={customers}
-              selectedCustomer={selectedRetentionCustomer}
-              onSelectCustomer={(c) => setSelectedRetentionCustomer(c)}
-              onCampaignDispatched={handleCampaignDispatched}
+          {activeTab === 'predictions' && <PredictionPage />}
+
+          {activeTab === 'segments' && (
+            <SegmentsPage
+              customers={filteredCustomers}
+              onSelectCustomer={setSelectedCustomer}
+              onDeployRetention={handleDeployRetention}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'simulator' && (
-          <div className="animate-fade-in">
-            <WhatIfROICalculator customers={customers} />
-          </div>
-        )}
+          {activeTab === 'retention' && (
+            <RetentionPage
+              customers={filteredCustomers}
+              selectedCustomer={selectedCustomer}
+              onClearCustomer={() => setSelectedCustomer(null)}
+              onSelectCustomer={setSelectedCustomer}
+            />
+          )}
 
-      </main>
+          {activeTab === 'analytics' && <AnalyticsPage customers={filteredCustomers} />}
 
-      {/* Customer 360 & Explainable AI Modal */}
-      <Customer360Modal
-        customer={selectedCustomer360}
-        onClose={() => setSelectedCustomer360(null)}
-        onDeployRetention={(c) => {
-          setSelectedRetentionCustomer(c);
-          setActiveTab('retention');
-        }}
-      />
+          {activeTab === 'reports' && <ReportsPage customers={filteredCustomers} />}
 
-      {/* 2-Min Hackathon Pitch Deck Modal */}
-      <PitchModeModal
-        isOpen={isPitchOpen}
-        onClose={() => setIsPitchOpen(false)}
-      />
+          {activeTab === 'notifications' && (
+            <NotificationsPage
+              notifications={notifications}
+              onMarkAllAsRead={handleMarkAllAsRead}
+            />
+          )}
 
-      {/* Excel File Import Modal */}
+          {activeTab === 'settings' && <SettingsPage />}
+
+        </main>
+      </div>
+
+      {/* Modals */}
+      {selectedCustomer && (
+        <Customer360Modal
+          customer={selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+          onDeployRetention={handleDeployRetention}
+        />
+      )}
+
       <ExcelImportModal
         isOpen={isExcelModalOpen}
         onClose={() => setIsExcelModalOpen(false)}
-        onCustomersImported={handleExcelImported}
+        onCustomersImported={handleImportExcelCustomers}
       />
 
-      {/* Notification Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 text-zinc-100 border border-zinc-800 px-4 py-3 rounded-lg shadow-xl font-medium text-xs flex items-center space-x-2 animate-bounce">
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/80 py-4 text-center text-xs text-zinc-400 bg-zinc-950">
-        <p>LoyalLens AI Platform • Custom Excel Dataset Parser Integrated • Autonomous Retention Engine</p>
-      </footer>
+      <PitchModeModal
+        isOpen={isPitchModalOpen}
+        onClose={() => setIsPitchModalOpen(false)}
+      />
 
     </div>
   );
-};
+}
 
 export default App;

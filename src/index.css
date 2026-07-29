@@ -1,81 +1,75 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 240 5.9% 90%;
-  --primary-foreground: 240 5.9% 10%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary: #0f172a;
+  --accent: #06b6d4;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --background: #f8fafc;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+}
+
+.dark {
+  --background: #090d16;
+  --card-bg: #111827;
+  --card-border: #1f2937;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
 }
 
 body {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: var(--background);
+  color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* shadcn UI helper utilities */
-.shadcn-card {
-  background-color: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-}
-
-.shadcn-card-interactive {
+/* Glassmorphism & Enterprise Cards */
+.saas-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.shadcn-card-interactive:hover {
-  background-color: #27272a;
-  border-color: #3f3f46;
+
+.saas-card-hover:hover {
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.3);
+  transform: translateY(-2px);
 }
 
-.shadcn-input {
-  background-color: #09090b;
-  border: 1px solid #27272a;
+.dark .saas-card-hover:hover {
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.2);
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.saas-input {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 0.5rem;
-  color: #f4f4f5;
+  color: var(--text-main);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.shadcn-input:focus {
+.saas-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 1px #6366f1;
-}
-
-.shadcn-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  padding: 0.125rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1rem;
-  transition: color 0.15s ease;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 /* Scrollbars */
@@ -84,12 +78,15 @@ h1, h2, h3, h4, h5, h6 {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #94a3b8;
 }
