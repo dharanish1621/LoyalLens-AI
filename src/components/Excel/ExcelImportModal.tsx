@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Customer } from '../../types';
 import { parseExcelFile, downloadSampleExcel } from '../../lib/excelImporter';
-import { X, FileSpreadsheet, Upload, Download, CheckCircle2, AlertCircle, RefreshCw, Cpu } from 'lucide-react';
+import { checkBackendHealth } from '../../lib/apiConfig';
+import { X, FileSpreadsheet, Upload, Download, CheckCircle2, AlertCircle, RefreshCw, Cpu, ServerOff } from 'lucide-react';
 
 interface ExcelImportModalProps {
   isOpen: boolean;
@@ -20,7 +21,22 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [backendStatus, setBackendStatus] = useState<{ online: boolean; baseUrl: string; service?: string } | null>(null);
   const pollTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      checkBackendHealth().then((status) => {
+        setBackendStatus(status);
+        if (!status.online) {
+          setErrorMsg('Backend server is offline. Please start the backend service (python backend/app.py).');
+        }
+      });
+    }
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -41,32 +57,61 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     setIsProcessing(true);
     setErrorMsg(null);
     setSuccessMessage(null);
-    setCurrentStep('Uploading Dataset...');
-    setProgressPercent(15);
+    setCurrentStep('Checking Backend Service Status...');
+    setProgressPercent(10);
 
     try {
+      // 1. Check Backend Health
+      const health = await checkBackendHealth();
+      setBackendStatus(health);
+
+      if (!health.online) {
+        // Perform Client-side Web Worker Parsing Fallback gracefully
+        setCurrentStep('Backend offline. Parsing dataset locally...');
+        setProgressPercent(40);
+        await new Promise(r => setTimeout(r, 400));
+
+        setCurrentStep('Generating Client Predictions...');
+        setProgressPercent(75);
+        await new Promise(r => setTimeout(r, 400));
+
+        const parsed = await parseExcelFile(file);
+
+        setCurrentStep('Updating Dashboard...');
+        setProgressPercent(100);
+        await new Promise(r => setTimeout(r, 300));
+
+        setSuccessMessage(`Successfully processed ${parsed.length.toLocaleString()} customer records locally! Dashboard updated.`);
+        onCustomersImported(parsed);
+
+        setTimeout(() => {
+          setIsProcessing(false);
+          onClose();
+        }, 1200);
+        return;
+      }
+
+      // 2. Post dataset asynchronously to verified backend URL
+      setCurrentStep('Uploading Dataset to Backend...');
+      setProgressPercent(25);
+
       const formData = new FormData();
       formData.append('file', file);
 
-      // 1. Post dataset asynchronously to backend (returns HTTP 202 with job_id)
-      let uploadRes: Response | null = null;
-      try {
-        uploadRes = await fetch('http://localhost:5000/api/v1/dataset/upload', {
-          method: 'POST',
-          body: formData,
-        });
-      } catch (err) {
-        console.warn('Backend server offline, performing async web-worker parsing fallback.', err);
-      }
+      const uploadUrl = `${health.baseUrl}/api/v1/dataset/upload`;
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (uploadRes && uploadRes.ok) {
+      if (uploadRes.ok) {
         const initialData = await uploadRes.json();
         const jobId = initialData.job_id;
 
-        // 2. Poll job status asynchronously every 1.5 seconds without blocking UI thread
+        // 3. Poll job status asynchronously every 1.5s
         const pollJobStatus = async () => {
           try {
-            const statusRes = await fetch(`http://localhost:5000/api/v1/dataset/status/${jobId}`);
+            const statusRes = await fetch(`${health.baseUrl}/api/v1/dataset/status/${jobId}`);
             if (!statusRes.ok) throw new Error('Failed to fetch job status');
 
             const statusData = await statusRes.json();
@@ -75,7 +120,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
             if (statusData.status === 'completed') {
               if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-              
+
               setCurrentStep('Updating Dashboard...');
               setProgressPercent(100);
               await new Promise(r => setTimeout(r, 400));
@@ -101,37 +146,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
         pollTimerRef.current = setInterval(pollJobStatus, 1500);
 
-      } else if (uploadRes && !uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error || 'Dataset validation error.');
       } else {
-        // Fallback: Web worker non-blocking XLSX parsing
-        setCurrentStep('Cleaning Dataset...');
-        setProgressPercent(40);
-        await new Promise(r => setTimeout(r, 300));
-
-        setCurrentStep('Training Model...');
-        setProgressPercent(70);
-        await new Promise(r => setTimeout(r, 400));
-
-        const parsed = await parseExcelFile(file);
-
-        setCurrentStep('Updating Dashboard...');
-        setProgressPercent(100);
-        await new Promise(r => setTimeout(r, 300));
-
-        setSuccessMessage(`Successfully processed ${parsed.length.toLocaleString()} customer records! Dashboard updated.`);
-        onCustomersImported(parsed);
-
-        setTimeout(() => {
-          setIsProcessing(false);
-          onClose();
-        }, 1200);
+        const errorData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server responded with status ${uploadRes.status}`);
       }
 
     } catch (err: any) {
       console.error('Dataset Sync Error:', err);
-      setErrorMsg(err.message || 'Failed to process dataset file.');
+      setErrorMsg(err.message || 'Connection refused or backend server unavailable. Please start backend with python backend/app.py.');
       setIsProcessing(false);
       setProgressPercent(0);
     }
@@ -145,7 +167,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
             <FileSpreadsheet className="w-5 h-5" />
-            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base font-outfit">Asynchronous Dataset Synchronization</h3>
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base font-outfit">Dataset Synchronization</h3>
           </div>
           <button
             onClick={onClose}
@@ -155,6 +177,19 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Backend Server Offline Warning Banner */}
+        {backendStatus && !backendStatus.online && (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start space-x-2.5">
+            <ServerOff className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block">Backend server is offline (Ports 5000 / 8000)</span>
+              <span className="text-[11px] text-amber-600 dark:text-amber-400">
+                To enable ML model retraining & backend predictions, run <code>python backend/app.py</code> in terminal. Dataset will be parsed locally as fallback.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Upload Zone */}
         <div className="space-y-4">
@@ -209,7 +244,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
             <div className="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400">
               <Cpu className="w-3.5 h-3.5 text-cyan-500" />
-              <span>Background Thread Execution Active (UI Unblocked)</span>
+              <span>Non-blocking Background Thread Execution (UI Active)</span>
             </div>
           </div>
         )}

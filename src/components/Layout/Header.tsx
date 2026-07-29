@@ -1,5 +1,7 @@
-import React from 'react';
-import { Search, Bell, Sun, Moon, FileSpreadsheet, Presentation, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, Sun, Moon, FileSpreadsheet, Presentation, CheckCircle2, ServerOff } from 'lucide-react';
+import { checkBackendHealth } from '../../lib/apiConfig';
+import type { BackendHealthStatus } from '../../lib/apiConfig';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -22,6 +24,16 @@ export const Header: React.FC<HeaderProps> = ({
   searchTerm,
   setSearchTerm,
 }) => {
+  const [backendHealth, setBackendHealth] = useState<BackendHealthStatus | null>(null);
+
+  useEffect(() => {
+    checkBackendHealth().then((status) => setBackendHealth(status));
+    const interval = setInterval(() => {
+      checkBackendHealth().then((status) => setBackendHealth(status));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className="sticky top-0 z-20 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 flex items-center justify-between gap-4 transition-colors">
       
@@ -43,11 +55,18 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right Controls */}
       <div className="flex items-center space-x-3">
         
-        {/* AI Status Indicator */}
-        <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span>XGBoost ML Active (91.8%)</span>
-        </div>
+        {/* AI Backend Status Indicator */}
+        {backendHealth?.online ? (
+          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>XGBoost ML Active (91.8%)</span>
+          </div>
+        ) : (
+          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold" title="Backend Server Offline">
+            <ServerOff className="w-3.5 h-3.5 text-amber-500" />
+            <span>Backend Offline</span>
+          </div>
+        )}
 
         {/* Excel Import Button */}
         <button
