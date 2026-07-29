@@ -1,5 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Bell, Sun, Moon, FileSpreadsheet, FileText, ServerOff, User } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Search,
+  Bell,
+  Sun,
+  Moon,
+  FileSpreadsheet,
+  FileText,
+  ServerOff,
+  User,
+  ChevronDown,
+  Building,
+  Settings,
+  Shield,
+  HelpCircle,
+  LogOut
+} from 'lucide-react';
 import { checkBackendHealth } from '../../lib/apiConfig';
 import type { BackendHealthStatus } from '../../lib/apiConfig';
 
@@ -12,6 +27,7 @@ interface HeaderProps {
   onOpenNotifications: () => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,15 +39,29 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNotifications,
   searchTerm,
   setSearchTerm,
+  onSignOut = () => {},
 }) => {
   const [backendHealth, setBackendHealth] = useState<BackendHealthStatus | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     checkBackendHealth().then((status) => setBackendHealth(status));
     const interval = setInterval(() => {
       checkBackendHealth().then((status) => setBackendHealth(status));
     }, 10000);
-    return () => clearInterval(interval);
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   return (
@@ -55,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Right Controls */}
       <div className="flex items-center space-x-3">
         
-        {/* Corporate Operational Status */}
+        {/* Operational Status */}
         {backendHealth?.online ? (
           <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -107,15 +137,71 @@ export const Header: React.FC<HeaderProps> = ({
           {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
 
-        {/* Business Profile */}
-        <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
-          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="hidden lg:flex flex-col text-left text-xs">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">Administrator</span>
-            <span className="text-[10px] text-slate-500">Business Administrator</span>
-          </div>
+        {/* Corporate Profile Dropdown */}
+        <div className="relative pl-2 border-l border-slate-200 dark:border-slate-800" ref={dropdownRef}>
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center space-x-2.5 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 font-bold text-xs border border-slate-300 dark:border-slate-700">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="hidden lg:flex flex-col text-left text-xs">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">Administrator</span>
+              <span className="text-[10px] text-slate-500">Business Administrator</span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
+          </button>
+
+          {/* Profile Dropdown Menu */}
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-50 text-xs">
+              <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800">
+                <p className="font-bold text-slate-900 dark:text-slate-100">Administrator</p>
+                <p className="text-[11px] text-slate-500 truncate">administrator@enterprise.com</p>
+              </div>
+
+              <div className="py-1">
+                <button className="w-full px-4 py-2 flex items-center space-x-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <User className="w-4 h-4 text-slate-400" />
+                  <span>My Profile</span>
+                </button>
+
+                <button className="w-full px-4 py-2 flex items-center space-x-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <Building className="w-4 h-4 text-slate-400" />
+                  <span>Organization</span>
+                </button>
+
+                <button className="w-full px-4 py-2 flex items-center space-x-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <Settings className="w-4 h-4 text-slate-400" />
+                  <span>Account Settings</span>
+                </button>
+
+                <button className="w-full px-4 py-2 flex items-center space-x-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <Shield className="w-4 h-4 text-slate-400" />
+                  <span>Security</span>
+                </button>
+
+                <button className="w-full px-4 py-2 flex items-center space-x-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <HelpCircle className="w-4 h-4 text-slate-400" />
+                  <span>Help Center</span>
+                </button>
+              </div>
+
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-1">
+                <button
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    onSignOut();
+                  }}
+                  className="w-full px-4 py-2 flex items-center space-x-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors font-medium"
+                >
+                  <LogOut className="w-4 h-4 text-rose-500" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

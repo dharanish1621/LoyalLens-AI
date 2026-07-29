@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import type { Customer } from './types';
 import { INITIAL_CUSTOMERS } from './lib/mockDataset';
 
-// Components & Layout
+// Auth & Layout
+import { LoginPage } from './components/Auth/LoginPage';
 import { Sidebar } from './components/Layout/Sidebar';
 import type { NavItem } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
@@ -25,6 +26,7 @@ import { ExcelImportModal } from './components/Excel/ExcelImportModal';
 import { PitchModeModal } from './components/Pitch/PitchModeModal';
 
 export function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<NavItem>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
@@ -50,18 +52,18 @@ export function App() {
     },
     {
       id: 'n2',
-      title: 'High Churn Risk Spike Alert',
-      message: 'VIP Account Marcus Chen (CLV $8,200) risk score spiked to 88% due to shipping delay.',
+      title: 'High Risk Account Alert',
+      message: 'Account Marcus Chen (Value $8,200) flagged for priority outreach.',
       timestamp: '10 mins ago',
       type: 'alert',
       read: false,
     },
     {
       id: 'n3',
-      title: 'XGBoost Model Retrained',
-      message: 'Model retrained on latest dataset. Accuracy stable at 91.82%, ROC-AUC 0.926.',
+      title: 'System Performance Benchmark',
+      message: 'Platform operating cleanly. All retention metrics updated.',
       timestamp: '1 hour ago',
-      type: 'ai',
+      type: 'system',
       read: true,
     },
   ]);
@@ -80,11 +82,10 @@ export function App() {
     if (imported && imported.length > 0) {
       setCustomers(imported);
       
-      // Add system notification for dataset sync
       const newNotif: NotificationItem = {
         id: `notif-${Date.now()}`,
-        title: 'Dataset Successfully Synchronized',
-        message: `Dashboard refreshed with ${imported.length.toLocaleString()} customer records.${stats ? ` Model accuracy: ${stats.model_accuracy}%` : ''}`,
+        title: 'Dataset Synchronized',
+        message: `Dashboard refreshed with ${imported.length.toLocaleString()} customer records.${stats ? ` Operational score: ${stats.model_accuracy}%` : ''}`,
         timestamp: 'Just now',
         type: 'system',
         read: false,
@@ -114,6 +115,17 @@ export function App() {
       c.segment.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // If user is not authenticated, display the Corporate Login Portal
+  if (!isAuthenticated) {
+    return (
+      <LoginPage
+        onLogin={() => setIsAuthenticated(true)}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex transition-colors font-sans">
       
@@ -139,6 +151,7 @@ export function App() {
           onOpenNotifications={() => setActiveTab('notifications')}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          onSignOut={() => setIsAuthenticated(false)}
         />
 
         {/* Dynamic Page Views */}
